@@ -38,6 +38,8 @@ const App: React.FC = () => {
   const [currentQuest, setCurrentQuest] = useState<any>(null);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [attempts, setAttempts] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [newDisplayName, setNewDisplayName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
@@ -180,6 +182,7 @@ const App: React.FC = () => {
         setCurrentQuest(quest);
         setAnswer('');
         setFeedback('');
+        setAttempts(0);
         setError(null);
       } catch (e) {
         console.error('Error generating quest:', e);
@@ -192,8 +195,10 @@ const App: React.FC = () => {
   const submitAnswer = async () => {
     if (actor && currentQuest) {
       try {
+        setIsSubmitting(true);
+        setAttempts(prev => prev + 1);
         const result = await actor.submitAnswer(currentQuest.id, answer);
-        setFeedback(result ? 'Correct!' : 'Wrong answer, try again!');
+        setFeedback(result ? 'Correct!' : `Wrong answer (Attempt ${attempts + 1}) - try again!`);
         if (result) {
           const updatedProfile = await actor.getProfile();
           if (updatedProfile && updatedProfile.length > 0) {
@@ -204,6 +209,8 @@ const App: React.FC = () => {
       } catch (e) {
         console.error('Error submitting answer:', e);
         setError(e instanceof Error ? e.message : 'An error occurred while submitting answer');
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -359,15 +366,31 @@ const App: React.FC = () => {
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               placeholder="Enter your answer"
-              disabled={feedback.includes('Correct')}
+              disabled={feedback.includes('Correct') || isSubmitting}
             />
             <button 
               onClick={submitAnswer}
-              disabled={feedback.includes('Correct')}
+              disabled={feedback.includes('Correct') || isSubmitting}
             >
-              {feedback.includes('Correct') ? 'Completed ✓' : 'Submit'}
+              {feedback.includes('Correct') 
+                ? 'Completed ✓' 
+                : isSubmitting 
+                  ? 'Checking...' 
+                  : 'Submit'
+              }
             </button>
-            {feedback && <p className={feedback.includes('Correct') ? 'correct' : 'wrong'}>{feedback}</p>}
+            {feedback && (
+              <div className="feedback-container">
+                <p className={feedback.includes('Correct') ? 'correct' : 'wrong'}>
+                  {feedback}
+                </p>
+                {!feedback.includes('Correct') && attempts > 0 && (
+                  <p className="attempts">
+                    {attempts === 1 ? '1 attempt' : `${attempts} attempts`} so far
+                  </p>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

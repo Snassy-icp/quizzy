@@ -41,9 +41,14 @@ button {
 }
 
 button:disabled {
-  background-color: var(--success-color);
+  background-color: var(--primary-color);
   cursor: not-allowed;
-  opacity: 0.8;
+  opacity: 0.7;
+}
+
+button:disabled:not(.completed) {
+  background-color: var(--primary-color);
+  opacity: 0.7;
 }
 
 button:disabled:hover {
@@ -239,4 +244,15 @@ input:disabled {
 
 .edit-name-button:hover {
   text-decoration: underline;
+}
+
+.feedback-container {
+  margin: 1rem 0;
+}
+
+.attempts {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  font-style: italic;
 } 
