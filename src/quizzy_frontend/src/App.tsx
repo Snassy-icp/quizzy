@@ -12,6 +12,15 @@ const bigIntReplacer = (_key: string, value: any) => {
   return value;
 };
 
+// Helper function to get XP threshold for next level
+const getXpThreshold = (currentXp: number): number => {
+  if (currentXp <= 100) return 100;
+  if (currentXp <= 250) return 250;
+  if (currentXp <= 500) return 500;
+  if (currentXp <= 1000) return 1000;
+  return 1000; // Level 5 cap for now
+};
+
 declare global {
   interface Window {
     ENV: {
@@ -191,11 +200,19 @@ const App: React.FC = () => {
           <div>
             {profile.subjectProgress.map((progress: any) => {
               const [subject, data] = progress;
+              const currentXp = data && typeof data === 'object' ? Number(data.xp) : 0;
+              const xpThreshold = getXpThreshold(currentXp);
               return (
                 <div key={subject || 'unknown'}>
                   <p>Subject: {subject || 'Unknown'}</p>
                   <p>Level: {data && typeof data === 'object' ? Number(data.level) : 0}</p>
-                  <p>XP: {data && typeof data === 'object' ? Number(data.xp) : 0}</p>
+                  <p>XP: {currentXp} / {xpThreshold}</p>
+                  <div className="xp-bar">
+                    <div 
+                      className="xp-progress" 
+                      style={{ width: `${Math.min(100, (currentXp / xpThreshold) * 100)}%` }}
+                    />
+                  </div>
                   <p>Quests Completed: {data && typeof data === 'object' ? Number(data.questsCompleted) : 0}</p>
                 </div>
               );
