@@ -4,6 +4,14 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../src/declarations/quizzy_backend';
 import type { _SERVICE } from '../../../src/declarations/quizzy_backend/quizzy_backend.did.d.ts';
 
+// Helper function to safely stringify BigInt values
+const bigIntReplacer = (_key: string, value: any) => {
+  if (typeof value === 'bigint') {
+    return Number(value);
+  }
+  return value;
+};
+
 declare global {
   interface Window {
     ENV: {
@@ -61,7 +69,7 @@ const App: React.FC = () => {
       
       // Try to get existing profile
       const profile = await newActor.getProfile();
-      console.log('Retrieved profile:', profile);
+      console.log('Retrieved profile:', JSON.stringify(profile, bigIntReplacer, 2));
       if (profile && profile.length > 0) {
         setProfile(profile[0]);
       }
@@ -97,7 +105,7 @@ const App: React.FC = () => {
         const displayName = 'Player ' + Math.floor(Math.random() * 1000);
         console.log('Using display name:', displayName);
         const newProfile = await actor.createProfile(displayName);
-        console.log('Profile created:', newProfile);
+        console.log('Profile created (full data):', JSON.stringify(newProfile, bigIntReplacer, 2));
         if (newProfile) {
           setProfile(newProfile);
           setError(null);
@@ -179,13 +187,21 @@ const App: React.FC = () => {
       <div className="profile">
         <h2>Profile</h2>
         <p>Player: {profile?.displayName || 'Unknown'}</p>
-        {profile?.subjectProgress && Array.isArray(profile.subjectProgress) && profile.subjectProgress.map((progress: any) => (
-          <div key={progress?.[0] || 'unknown'}>
-            <p>Subject: {progress?.[0] || 'Unknown'}</p>
-            <p>Level: {progress?.[1]?.level || 0}</p>
-            <p>XP: {progress?.[1]?.xp || 0}</p>
+        {profile?.subjectProgress && Array.isArray(profile.subjectProgress) && (
+          <div>
+            {profile.subjectProgress.map((progress: any) => {
+              const [subject, data] = progress;
+              return (
+                <div key={subject || 'unknown'}>
+                  <p>Subject: {subject || 'Unknown'}</p>
+                  <p>Level: {data && typeof data === 'object' ? Number(data.level) : 0}</p>
+                  <p>XP: {data && typeof data === 'object' ? Number(data.xp) : 0}</p>
+                  <p>Quests Completed: {data && typeof data === 'object' ? Number(data.questsCompleted) : 0}</p>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
 
       <div className="quest">
