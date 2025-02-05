@@ -31,8 +31,9 @@ module.exports = {
       util: require.resolve("util/"),
     },
     modules: [
+      "node_modules",
       path.resolve(__dirname, "node_modules"),
-      path.resolve(__dirname, "../../node_modules"),
+      path.resolve(__dirname, "../../node_modules")
     ]
   },
   output: {
@@ -70,7 +71,8 @@ module.exports = {
     }),
     new webpack.EnvironmentPlugin({
       NODE_ENV: "development",
-      QUIZZY_BACKEND_CANISTER_ID: process.env.CANISTER_ID_QUIZZY_BACKEND || "",
+      DFX_NETWORK: process.env.DFX_NETWORK || "local",
+      CANISTER_ID_QUIZZY_BACKEND: process.env.CANISTER_ID_QUIZZY_BACKEND || "",
       II_URL: isDevelopment 
         ? `http://localhost:8000?canisterId=${process.env.CANISTER_ID_INTERNET_IDENTITY}`
         : "https://identity.ic0.app",

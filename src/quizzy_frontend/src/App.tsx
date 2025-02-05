@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AuthClient } from '@dfinity/auth-client';
 import { Actor, HttpAgent } from '@dfinity/agent';
-import { quizzy_backend } from '../../../src/declarations/quizzy_backend';
+import { idlFactory, canisterId } from '../../../src/declarations/quizzy_backend';
 import type { _SERVICE } from '../../../src/declarations/quizzy_backend/quizzy_backend.did.d.ts';
 
 declare global {
@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [currentQuest, setCurrentQuest] = useState<any>(null);
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // Initialize auth client
   useEffect(() => {
@@ -36,39 +37,55 @@ const App: React.FC = () => {
 
   // Initialize backend actor
   const initActor = async (client: AuthClient) => {
-    const identity = client.getIdentity();
-    const agent = new HttpAgent({ identity });
-    // TODO: when deploying locally, remove this line
-    await agent.fetchRootKey();
-    
-    // Create a new actor with the identity
-    const newActor = Actor.createActor<_SERVICE>(quizzy_backend._factory, {
-      agent,
-      canisterId: window.ENV?.QUIZZY_BACKEND_CANISTER_ID || process.env.QUIZZY_BACKEND_CANISTER_ID!,
-    });
-    setActor(newActor);
-    
-    // Try to get existing profile
     try {
+      const identity = client.getIdentity();
+      const agent = new HttpAgent({ 
+        identity,
+        host: process.env.DFX_NETWORK === "ic" ? "https://ic0.app" : undefined
+      });
+      
+      // Only fetch root key when not on mainnet
+      if (process.env.DFX_NETWORK !== "ic") {
+        await agent.fetchRootKey();
+      }
+      
+      const canisterIdToUse = window.ENV?.QUIZZY_BACKEND_CANISTER_ID || canisterId;
+      console.log('Using canister ID:', canisterIdToUse);
+      
+      // Create a new actor with the identity
+      const newActor = Actor.createActor<_SERVICE>(idlFactory, {
+        agent,
+        canisterId: canisterIdToUse,
+      });
+      setActor(newActor);
+      
+      // Try to get existing profile
       const profile = await newActor.getProfile();
-      if (profile) {
-        setProfile(profile);
+      console.log('Retrieved profile:', profile);
+      if (profile && profile.length > 0) {
+        setProfile(profile[0]);
       }
     } catch (e) {
-      console.error('Error fetching profile:', e);
+      console.error('Error in initActor:', e);
+      setError(e instanceof Error ? e.message : 'An error occurred during initialization');
     }
   };
 
   // Login with Internet Identity
   const login = async () => {
     if (authClient) {
-      await authClient.login({
-        identityProvider: window.ENV?.II_URL || process.env.II_URL,
-        onSuccess: () => {
-          setIsAuthenticated(true);
-          initActor(authClient);
-        },
-      });
+      try {
+        await authClient.login({
+          identityProvider: window.ENV?.II_URL || "https://identity.ic0.app",
+          onSuccess: () => {
+            setIsAuthenticated(true);
+            initActor(authClient);
+          },
+        });
+      } catch (e) {
+        console.error('Login error:', e);
+        setError(e instanceof Error ? e.message : 'An error occurred during login');
+      }
     }
   };
 
@@ -76,11 +93,22 @@ const App: React.FC = () => {
   const createProfile = async () => {
     if (actor) {
       try {
-        const newProfile = await actor.createProfile('Player ' + Math.floor(Math.random() * 1000));
-        setProfile(newProfile);
+        console.log('Creating profile...');
+        const displayName = 'Player ' + Math.floor(Math.random() * 1000);
+        console.log('Using display name:', displayName);
+        const newProfile = await actor.createProfile(displayName);
+        console.log('Profile created:', newProfile);
+        if (newProfile) {
+          setProfile(newProfile);
+          setError(null);
+        }
       } catch (e) {
         console.error('Error creating profile:', e);
+        setError(e instanceof Error ? e.message : 'An error occurred while creating profile');
       }
+    } else {
+      console.error('Actor not initialized');
+      setError('System not properly initialized');
     }
   };
 
@@ -92,8 +120,10 @@ const App: React.FC = () => {
         setCurrentQuest(quest);
         setAnswer('');
         setFeedback('');
+        setError(null);
       } catch (e) {
         console.error('Error generating quest:', e);
+        setError(e instanceof Error ? e.message : 'An error occurred while generating quest');
       }
     }
   };
@@ -105,18 +135,21 @@ const App: React.FC = () => {
         const result = await actor.submitAnswer(currentQuest.id, answer);
         setFeedback(result ? 'Correct!' : 'Wrong answer, try again!');
         if (result) {
-          // Get updated profile after correct answer
           const updatedProfile = await actor.getProfile();
-          setProfile(updatedProfile);
+          if (updatedProfile && updatedProfile.length > 0) {
+            setProfile(updatedProfile[0]);
+          }
         }
+        setError(null);
       } catch (e) {
         console.error('Error submitting answer:', e);
+        setError(e instanceof Error ? e.message : 'An error occurred while submitting answer');
       }
     }
   };
 
   if (!authClient) {
-    return <div>Loading...</div>;
+    return <div className="container">Loading...</div>;
   }
 
   if (!isAuthenticated) {
@@ -124,6 +157,7 @@ const App: React.FC = () => {
       <div className="container">
         <h1>Welcome to Quizzy!</h1>
         <button onClick={login}>Login with Internet Identity</button>
+        {error && <p className="error">{error}</p>}
       </div>
     );
   }
@@ -133,6 +167,7 @@ const App: React.FC = () => {
       <div className="container">
         <h1>Create Profile</h1>
         <button onClick={createProfile}>Create New Profile</button>
+        {error && <p className="error">{error}</p>}
       </div>
     );
   }
@@ -143,12 +178,12 @@ const App: React.FC = () => {
       
       <div className="profile">
         <h2>Profile</h2>
-        <p>Player: {profile.displayName}</p>
-        {profile.subjectProgress.map((progress: any) => (
-          <div key={progress[0]}>
-            <p>Subject: {progress[0]}</p>
-            <p>Level: {progress[1].level}</p>
-            <p>XP: {progress[1].xp}</p>
+        <p>Player: {profile?.displayName || 'Unknown'}</p>
+        {profile?.subjectProgress && Array.isArray(profile.subjectProgress) && profile.subjectProgress.map((progress: any) => (
+          <div key={progress?.[0] || 'unknown'}>
+            <p>Subject: {progress?.[0] || 'Unknown'}</p>
+            <p>Level: {progress?.[1]?.level || 0}</p>
+            <p>XP: {progress?.[1]?.xp || 0}</p>
           </div>
         ))}
       </div>
@@ -159,7 +194,7 @@ const App: React.FC = () => {
         
         {currentQuest && (
           <div>
-            <p>{currentQuest.content.question}</p>
+            <p>{currentQuest.content?.question || 'Error loading question'}</p>
             <input
               type="text"
               value={answer}
@@ -171,6 +206,8 @@ const App: React.FC = () => {
           </div>
         )}
       </div>
+      
+      {error && <p className="error">{error}</p>}
     </div>
   );
 };
