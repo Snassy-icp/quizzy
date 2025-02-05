@@ -16,53 +16,89 @@ import Hash "mo:base/Hash";
 actor Quizzy {
     // State
     private stable var nextQuestId : Nat = 0;
+    private stable var nextSubjectId : Nat = 0;
     private stable var stableUsers : [(Principal, Types.UserProfile)] = [];
-    private stable var stableSubjects : [(Text, Types.Subject)] = [];
+    private stable var stableSubjects : [(Nat, Types.Subject)] = [];
     private stable var stableQuests : [(Nat, Types.Quest)] = [];
 
     // In-memory storage
     private let users = HashMap.HashMap<Principal, Types.UserProfile>(10, Principal.equal, Principal.hash);
-    private let subjects = HashMap.HashMap<Text, Types.Subject>(10, Text.equal, Text.hash);
+    private let subjects = HashMap.HashMap<Nat, Types.Subject>(10, Nat.equal, Hash.hash);
     private let quests = HashMap.HashMap<Nat, Types.Quest>(10, Nat.equal, Hash.hash);
     private let usedNames = HashMap.HashMap<Text, Bool>(10, Text.equal, Text.hash);
 
     // Initialize root subject if it doesn't exist
     private func initRootSubject() {
-        switch (subjects.get("root")) {
+        switch (Array.find<(Nat, Types.Subject)>(
+            Iter.toArray(subjects.entries()),
+            func((_, subject)) { subject.subjectType == #Root }
+        )) {
             case (?_) { return; }; // Root already exists
             case null {
+                let rootId = nextSubjectId;
+                nextSubjectId += 1;
                 let rootSubject : Types.Subject = {
-                    id = "root";
+                    id = rootId;
                     name = "Quizzy";
                     description = "The root of all knowledge";
-                    parentId = "root"; // Self-referential for root
+                    parentId = rootId; // Self-referential for root
                     subjectType = #Root;
                     childSubjects = [];
                     prerequisites = [];
                     xpMultiplier = 1.0;
                 };
-                subjects.put("root", rootSubject);
+                subjects.put(rootId, rootSubject);
             };
         };
     };
 
     // Initialize core subjects if they don't exist
     private func initCoreSubjects() {
-        switch (subjects.get("math")) {
-            case (?_) { return; }; // Math subject already exists
-            case null {
-                let mathSubject : Types.Subject = {
-                    id = "math";
-                    name = "Mathematics";
-                    description = "The language of the universe";
-                    parentId = "root";
-                    subjectType = #Core;
-                    childSubjects = [];
-                    prerequisites = [];
-                    xpMultiplier = 1.0;
+        // First find the root subject
+        let rootSubject = Array.find<(Nat, Types.Subject)>(
+            Iter.toArray(subjects.entries()),
+            func((_, subject)) { subject.subjectType == #Root }
+        );
+        
+        switch (rootSubject) {
+            case (?(id, root)) {
+                // Check if math subject exists
+                switch (Array.find<(Nat, Types.Subject)>(
+                    Iter.toArray(subjects.entries()),
+                    func((_, subject)) { 
+                        subject.subjectType == #Core and subject.name == "Mathematics"
+                    }
+                )) {
+                    case (?_) { return; }; // Math subject already exists
+                    case null {
+                        let mathId = nextSubjectId;
+                        nextSubjectId += 1;
+                        let mathSubject : Types.Subject = {
+                            id = mathId;
+                            name = "Mathematics";
+                            description = "The language of the universe";
+                            parentId = id;
+                            subjectType = #Core;
+                            childSubjects = [];
+                            prerequisites = [];
+                            xpMultiplier = 1.0;
+                        };
+                        subjects.put(mathId, mathSubject);
+                        
+                        // Update root subject's childSubjects
+                        switch (subjects.get(id)) {
+                            case (?root) {
+                                subjects.put(id, {
+                                    root with
+                                    childSubjects = Array.append(root.childSubjects, [mathId]);
+                                });
+                            };
+                            case null { };
+                        };
+                    };
                 };
-                subjects.put("math", mathSubject);
             };
+            case null { };
         };
     };
 
@@ -194,29 +230,44 @@ actor Quizzy {
         let questId = nextQuestId;
         nextQuestId += 1;
 
-        // Simple addition for now, we'll expand this
-        let (num1, num2) = generateNumbers(difficulty);
-        let answer = Nat.toText(num1 + num2);
+        // Find math subject ID
+        let mathSubject = Array.find<(Nat, Types.Subject)>(
+            Iter.toArray(subjects.entries()),
+            func((_, subject)) { 
+                subject.subjectType == #Core and subject.name == "Mathematics"
+            }
+        );
         
-        let quest : Types.Quest = {
-            id = questId;
-            subject = "math";
-            difficulty = difficulty;
-            levelRequired = 1;
-            xpReward = difficulty * 10;
-            creditReward = difficulty * 5;
-            timeLimit = ?60;  // 60 seconds
-            questionType = #Numeric;
-            content = {
-                question = "What is " # Nat.toText(num1) # " + " # Nat.toText(num2) # "?";
-                options = null;
-                correctAnswer = answer;
-                explanation = ?"Addition is combining numbers together";
+        switch (mathSubject) {
+            case (?(id, subject)) {
+                // Simple addition for now, we'll expand this
+                let (num1, num2) = generateNumbers(difficulty);
+                let answer = Nat.toText(num1 + num2);
+                
+                let quest : Types.Quest = {
+                    id = questId;
+                    subject = id;
+                    difficulty = difficulty;
+                    levelRequired = 1;
+                    xpReward = difficulty * 10;
+                    creditReward = difficulty * 5;
+                    timeLimit = ?60;  // 60 seconds
+                    questionType = #Numeric;
+                    content = {
+                        question = "What is " # Nat.toText(num1) # " + " # Nat.toText(num2) # "?";
+                        options = null;
+                        correctAnswer = answer;
+                        explanation = ?"Addition is combining numbers together";
+                    };
+                };
+
+                quests.put(questId, quest);
+                return quest;
+            };
+            case null {
+                throw Error.reject("Math subject not found");
             };
         };
-
-        quests.put(questId, quest);
-        return quest;
     };
 
     // Helper function to generate numbers based on difficulty
@@ -294,15 +345,15 @@ actor Quizzy {
 
     // Helper to update user progress
     private func updateProgress(user : Types.UserProfile, quest : Types.Quest) : Types.UserProfile {
-        // For now, just update the math subject progress
-        let mathProgress = switch (Array.find<(Text, Types.SubjectProgress)>(
+        // For now, just update the subject progress
+        let subjectProgress = switch (Array.find<(Text, Types.SubjectProgress)>(
             user.subjectProgress, 
-            func((id, _)) { id == "math" }
+            func((_, progress)) { progress.subject == quest.subject }
         )) {
             case null {
                 // Create new progress
-                ("math", {
-                    subject = "math";
+                (Nat.toText(quest.subject), {
+                    subject = quest.subject;
                     level = 1;
                     xp = quest.xpReward;
                     credits = quest.creditReward;
@@ -333,11 +384,11 @@ actor Quizzy {
 
         let newProgress = Buffer.Buffer<(Text, Types.SubjectProgress)>(1);
         for ((id, prog) in user.subjectProgress.vals()) {
-            if (id != "math") {
+            if (prog.subject != quest.subject) {
                 newProgress.add((id, prog));
             };
         };
-        newProgress.add(mathProgress);
+        newProgress.add(subjectProgress);
 
         {
             user with
@@ -357,5 +408,24 @@ actor Quizzy {
         if (xp <= 500) return 3;
         if (xp <= 1000) return 4;
         return 5;  // Cap at level 5 for now
+    };
+
+    // Get subject information
+    public query func getSubject(subjectId : Nat) : async ?Types.Subject {
+        subjects.get(subjectId)
+    };
+
+    // Get multiple subjects at once (more efficient for the frontend)
+    public query func getSubjects(subjectIds : [Nat]) : async [(Nat, Types.Subject)] {
+        let results = Buffer.Buffer<(Nat, Types.Subject)>(subjectIds.size());
+        for (id in subjectIds.vals()) {
+            switch (subjects.get(id)) {
+                case (?subject) {
+                    results.add((id, subject));
+                };
+                case null { };
+            };
+        };
+        Buffer.toArray(results)
     };
 };

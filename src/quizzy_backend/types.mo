@@ -12,13 +12,13 @@ module {
     };
 
     public type SubjectProgress = {
-        subject: Text;
+        subject: Nat;
         level: Nat;
         xp: Nat;
         credits: Nat;
         questsCompleted: Nat;
         achievements: [Achievement];
-        childProgress: [(Text, SubjectProgress)];
+        childProgress: [(Nat, SubjectProgress)];
         aggregatedXP: Nat;
         aggregatedLevel: Nat;
         completedQuests: [Nat];  // Array of completed quest IDs
@@ -80,20 +80,20 @@ module {
     };
 
     public type Subject = {
-        id: Text;
+        id: Nat;
         name: Text;
         description: Text;
-        parentId: Text;
+        parentId: Nat;
         subjectType: SubjectType;
-        childSubjects: [Text];
-        prerequisites: [Text];
+        childSubjects: [Nat];
+        prerequisites: [Nat];
         xpMultiplier: Float;
     };
 
     // Basic quest types for core mathematics
     public type Quest = {
         id: Nat;
-        subject: Text;
+        subject: Nat;
         difficulty: Nat;  // 1-10
         levelRequired: Nat;
         xpReward: Nat;

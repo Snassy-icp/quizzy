@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AuthClient } from '@dfinity/auth-client';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../src/declarations/quizzy_backend';
-import type { _SERVICE } from '../../../src/declarations/quizzy_backend/quizzy_backend.did.d.ts';
+import type { _SERVICE, Subject, SubjectProgress } from '../../../src/declarations/quizzy_backend/quizzy_backend.did.d.ts';
 
 // Helper function to safely stringify BigInt values
 const bigIntReplacer = (_key: string, value: any) => {
@@ -44,6 +44,7 @@ const App: React.FC = () => {
   const [newDisplayName, setNewDisplayName] = useState('');
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameAvailabilityMessage, setNameAvailabilityMessage] = useState<string | null>(null);
+  const [subjectNames, setSubjectNames] = useState<{[key: string]: string}>({});
 
   // Initialize auth client
   useEffect(() => {
@@ -56,6 +57,35 @@ const App: React.FC = () => {
       }
     });
   }, []);
+
+  // Fetch subject names when profile changes
+  useEffect(() => {
+    const fetchSubjectNames = async () => {
+      if (actor && profile?.subjectProgress) {
+        try {
+          // Extract subject IDs from progress
+          const subjectIds = profile.subjectProgress.map(([_, progress]: [string, SubjectProgress]) => 
+            progress.subject
+          );
+          
+          // Fetch subject information
+          const subjects = await actor.getSubjects(subjectIds);
+          
+          // Create a mapping of subject ID to name
+          const nameMap = subjects.reduce((acc: {[key: string]: string}, [id, subject]: [bigint, Subject]) => {
+            acc[id.toString()] = subject.name;
+            return acc;
+          }, {});
+          
+          setSubjectNames(nameMap);
+        } catch (e) {
+          console.error('Error fetching subject names:', e);
+        }
+      }
+    };
+
+    fetchSubjectNames();
+  }, [actor, profile]);
 
   // Initialize backend actor
   const initActor = async (client: AuthClient) => {
@@ -315,14 +345,16 @@ const App: React.FC = () => {
         {profile?.subjectProgress && Array.isArray(profile.subjectProgress) && (
           <div>
             {profile.subjectProgress.map((progress: any) => {
-              const [subject, data] = progress;
+              const [subjectId, data] = progress;
               const currentXp = data && typeof data === 'object' ? Number(data.xp) : 0;
               const xpThreshold = getXpThreshold(currentXp);
               const credits = data && typeof data === 'object' ? Number(data.credits) || 0 : 0;
+              const subjectName = subjectNames[data.subject] || `Subject ${data.subject}`;
+              
               return (
-                <div key={subject || 'unknown'} className="subject-progress">
+                <div key={subjectId || 'unknown'} className="subject-progress">
                   <div className="subject-header">
-                    <h3>Subject: {subject || 'Unknown'}</h3>
+                    <h3>{subjectName}</h3>
                     <div className="credits">
                       <span className="credits-icon">🪙</span>
                       <span>{credits} Credits</span>
