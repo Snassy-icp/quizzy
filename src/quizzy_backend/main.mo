@@ -242,24 +242,72 @@ actor Quizzy {
         
         switch (mathSubject) {
             case (?(id, subject)) {
-                // Simple addition for now, we'll expand this
-                let (num1, num2) = generateNumbers(difficulty);
-                let answer = Nat.toText(num1 + num2);
+                // Generate quest based on difficulty level
+                let (question, answer, explanation) = switch difficulty {
+                    // Level 1: Simple addition and subtraction
+                    case 1 {
+                        let (num1, num2) = generateNumbers(difficulty);
+                        let isAddition = Int.abs(Time.now()) % 2 == 0;
+                        if (isAddition) {
+                            (
+                                "What is " # Nat.toText(num1) # " + " # Nat.toText(num2) # "?",
+                                Nat.toText(num1 + num2),
+                                ?"Addition is combining numbers together"
+                            )
+                        } else {
+                            // Ensure num1 is larger for subtraction
+                            let (larger, smaller) = if (num1 >= num2) { (num1, num2) } else { (num2, num1) };
+                            (
+                                "What is " # Nat.toText(larger) # " - " # Nat.toText(smaller) # "?",
+                                Nat.toText(larger - smaller),
+                                ?"Subtraction is finding the difference between numbers"
+                            )
+                        }
+                    };
+                    // Level 2: Multiplication and division
+                    case 2 {
+                        let (num1, num2) = generateNumbers(1); // Use smaller numbers for multiplication
+                        let isMultiplication = Int.abs(Time.now()) % 2 == 0;
+                        if (isMultiplication) {
+                            (
+                                "What is " # Nat.toText(num1) # " × " # Nat.toText(num2) # "?",
+                                Nat.toText(num1 * num2),
+                                ?"Multiplication is repeated addition"
+                            )
+                        } else {
+                            // Ensure division results in whole number
+                            let product = num1 * num2;
+                            (
+                                "What is " # Nat.toText(product) # " ÷ " # Nat.toText(num1) # "?",
+                                Nat.toText(num2),
+                                ?"Division is finding how many times one number goes into another"
+                            )
+                        }
+                    };
+                    // Level 3-4: Coming soon
+                    case 3 { generateFractionQuest() };
+                    case 4 { generateDecimalQuest() };
+                    // Level 5-6: Coming soon
+                    case 5 { generateBasicAlgebraQuest() };
+                    case 6 { generateAdvancedAlgebraQuest() };
+                    // Default to level 1
+                    case _ { generateFallbackQuest() };
+                };
                 
                 let quest : Types.Quest = {
                     id = questId;
                     subject = id;
                     difficulty = difficulty;
-                    levelRequired = 1;
+                    levelRequired = difficulty;
                     xpReward = difficulty * 10;
                     creditReward = difficulty * 5;
                     timeLimit = ?60;  // 60 seconds
                     questionType = #Numeric;
                     content = {
-                        question = "What is " # Nat.toText(num1) # " + " # Nat.toText(num2) # "?";
+                        question = question;
                         options = null;
                         correctAnswer = answer;
-                        explanation = ?"Addition is combining numbers together";
+                        explanation = explanation;
                     };
                 };
 
@@ -280,12 +328,41 @@ actor Quizzy {
             case _ { 1000 };
         };
         
-        // For now, just use the Time as a simple random seed
+        // Use time-based randomization with some extra entropy
         let time = Time.now();
-        let num1 = Int.abs(time) % base;
-        let num2 = Int.abs(time / 1_000_000) % base;
+        let seed1 = Int.abs(time) + Int.abs(nextQuestId);
+        let seed2 = Int.abs(time / 1_000_000) + Int.abs(nextQuestId * 2);
+        
+        let num1 = seed1 % base;
+        let num2 = seed2 % base;
         
         (num1, num2)
+    };
+
+    // Placeholder functions for higher difficulty levels
+    private func generateFractionQuest() : (Text, Text, ?Text) {
+        ("Coming soon: Fraction quest", "0", ?"This feature is under development")
+    };
+
+    private func generateDecimalQuest() : (Text, Text, ?Text) {
+        ("Coming soon: Decimal quest", "0", ?"This feature is under development")
+    };
+
+    private func generateBasicAlgebraQuest() : (Text, Text, ?Text) {
+        ("Coming soon: Basic Algebra quest", "0", ?"This feature is under development")
+    };
+
+    private func generateAdvancedAlgebraQuest() : (Text, Text, ?Text) {
+        ("Coming soon: Advanced Algebra quest", "0", ?"This feature is under development")
+    };
+
+    private func generateFallbackQuest() : (Text, Text, ?Text) {
+        let (num1, num2) = generateNumbers(1);
+        (
+            "What is " # Nat.toText(num1) # " + " # Nat.toText(num2) # "?",
+            Nat.toText(num1 + num2),
+            ?"Addition is combining numbers together"
+        )
     };
 
     // Quest Submission
