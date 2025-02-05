@@ -11,19 +11,19 @@ import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import Buffer "mo:base/Buffer";
 import Iter "mo:base/Iter";
+import Hash "mo:base/Hash";
 
 actor Quizzy {
     // State
-    private stable var nextUserId : Nat = 0;
     private stable var nextQuestId : Nat = 0;
     private stable var stableUsers : [(Principal, Types.UserProfile)] = [];
     private stable var stableSubjects : [(Text, Types.Subject)] = [];
-    private stable var stableQuests : [(Text, Types.Quest)] = [];
+    private stable var stableQuests : [(Nat, Types.Quest)] = [];
 
     // In-memory storage
     private let users = HashMap.HashMap<Principal, Types.UserProfile>(10, Principal.equal, Principal.hash);
     private let subjects = HashMap.HashMap<Text, Types.Subject>(10, Text.equal, Text.hash);
-    private let quests = HashMap.HashMap<Text, Types.Quest>(10, Text.equal, Text.hash);
+    private let quests = HashMap.HashMap<Nat, Types.Quest>(10, Nat.equal, Hash.hash);
     private let usedNames = HashMap.HashMap<Text, Bool>(10, Text.equal, Text.hash);
 
     // Initialize root subject if it doesn't exist
@@ -119,11 +119,7 @@ actor Quizzy {
                     case null { };
                 };
 
-                let userId = Nat.toText(nextUserId);
-                nextUserId += 1;
-
                 let newProfile : Types.UserProfile = {
-                    id = userId;
                     principal = caller;
                     displayName = displayName;
                     subjectProgress = [];
@@ -195,7 +191,7 @@ actor Quizzy {
 
     // Quest Generation for Mathematics
     public func generateMathQuest(difficulty : Nat) : async Types.Quest {
-        let questId = Nat.toText(nextQuestId);
+        let questId = nextQuestId;
         nextQuestId += 1;
 
         // Simple addition for now, we'll expand this
@@ -240,7 +236,7 @@ actor Quizzy {
     };
 
     // Quest Submission
-    public shared(msg) func submitAnswer(questId : Text, answer : Text) : async Bool {
+    public shared(msg) func submitAnswer(questId : Nat, answer : Text) : async Bool {
         switch (quests.get(questId)) {
             case null { 
                 throw Error.reject("Quest not found");
@@ -264,7 +260,7 @@ actor Quizzy {
                             switch (mathProgress) {
                                 case (?(_, progress)) {
                                     // Check if quest is already completed
-                                    let alreadyCompleted = Array.find<Text>(
+                                    let alreadyCompleted = Array.find<Nat>(
                                         progress.completedQuests,
                                         func(id) { id == questId }
                                     );

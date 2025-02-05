@@ -3,7 +3,6 @@ import Principal "mo:base/Principal";
 
 module {
     public type UserProfile = {
-        id: Text;
         principal: Principal;
         displayName: Text;
         subjectProgress: [(Text, SubjectProgress)];
@@ -22,7 +21,7 @@ module {
         childProgress: [(Text, SubjectProgress)];
         aggregatedXP: Nat;
         aggregatedLevel: Nat;
-        completedQuests: [Text];  // Array of completed quest IDs
+        completedQuests: [Nat];  // Array of completed quest IDs
     };
 
     public type Achievement = {
@@ -93,7 +92,7 @@ module {
 
     // Basic quest types for core mathematics
     public type Quest = {
-        id: Text;
+        id: Nat;
         subject: Text;
         difficulty: Nat;  // 1-10
         levelRequired: Nat;
