@@ -166,6 +166,19 @@ const App: React.FC = () => {
     }
   };
 
+  // Add logout function
+  const logout = async () => {
+    if (authClient) {
+      await authClient.logout();
+      setIsAuthenticated(false);
+      setProfile(null);
+      setActor(null);
+      setCurrentQuest(null);
+      setAnswer('');
+      setFeedback('');
+    }
+  };
+
   if (!authClient) {
     return <div className="container">Loading...</div>;
   }
@@ -192,7 +205,10 @@ const App: React.FC = () => {
 
   return (
     <div className="container">
-      <h1>Quizzy</h1>
+      <div className="header">
+        <h1>Quizzy</h1>
+        <button className="logout-button" onClick={logout}>Logout</button>
+      </div>
       
       <div className="profile">
         <h2>Profile</h2>
