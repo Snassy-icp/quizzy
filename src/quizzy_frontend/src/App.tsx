@@ -17,13 +17,34 @@ const formatId = (id: bigint): string => {
   return id.toString().padStart(4, '0');
 };
 
+// Helper function to calculate required XP for a level
+const getRequiredXP = (level: number): number => {
+  const baseXP = 100;  // XP needed for level 1
+  const growthFactor = 1.5;  // 50% more XP needed for each level
+  
+  if (level === 1) return 0;
+  if (level === 2) return baseXP;
+  
+  // Calculate total XP needed: baseXP * sum(growthFactor^(i-1)) for i from 1 to level-1
+  let total = baseXP;  // Start with level 1 requirement
+  let currentLevelXP = baseXP;
+  
+  for (let i = 2; i < level; i++) {
+    currentLevelXP *= growthFactor;
+    total += Math.floor(currentLevelXP);
+  }
+  
+  return total;
+};
+
 // Helper function to get XP threshold for next level
-const getXpThreshold = (currentXp: number): number => {
-  if (currentXp <= 100) return 100;
-  if (currentXp <= 250) return 250;
-  if (currentXp <= 500) return 500;
-  if (currentXp <= 1000) return 1000;
-  return 1000; // Level 5 cap for now
+const getXpThreshold = (level: number): number => {
+  return getRequiredXP(level + 1) - getRequiredXP(level);
+};
+
+// Helper function to get current level XP
+const getCurrentLevelXP = (totalXP: number, level: number): number => {
+  return totalXP - getRequiredXP(level);
 };
 
 declare global {
@@ -352,7 +373,7 @@ const App: React.FC = () => {
             {profile.subjectProgress.map((progress: any) => {
               const [subjectId, data] = progress;
               const currentXp = data && typeof data === 'object' ? Number(data.xp) : 0;
-              const xpThreshold = getXpThreshold(currentXp);
+              const xpThreshold = getXpThreshold(data && typeof data === 'object' ? Number(data.level) : 0);
               const credits = data && typeof data === 'object' ? Number(data.credits) || 0 : 0;
               const subjectName = subjectNames[data.subject] || `Subject ${data.subject}`;
               
@@ -366,11 +387,11 @@ const App: React.FC = () => {
                     </div>
                   </div>
                   <p>Level: {data && typeof data === 'object' ? Number(data.level) : 0}</p>
-                  <p>XP: {currentXp} / {xpThreshold}</p>
+                  <p>XP: {getCurrentLevelXP(currentXp, data && typeof data === 'object' ? Number(data.level) : 1)} / {xpThreshold}</p>
                   <div className="xp-bar">
                     <div 
                       className="xp-progress" 
-                      style={{ width: `${Math.min(100, (currentXp / xpThreshold) * 100)}%` }}
+                      style={{ width: `${Math.min(100, (getCurrentLevelXP(currentXp, data && typeof data === 'object' ? Number(data.level) : 1) / xpThreshold) * 100)}%` }}
                     />
                   </div>
                   <p>Quests Completed: {data && typeof data === 'object' ? Number(data.questsCompleted) : 0}</p>

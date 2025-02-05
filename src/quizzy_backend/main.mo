@@ -242,6 +242,10 @@ actor Quizzy {
         
         switch (mathSubject) {
             case (?(id, subject)) {
+                // Calculate rewards based on difficulty
+                let xpReward = calculateQuestXP(difficulty);
+                let creditReward = difficulty * 5;  // Keep credits linear for now
+
                 // Generate quest based on difficulty level
                 let (question, answer, explanation) = switch difficulty {
                     // Level 1: Simple addition and subtraction
@@ -299,8 +303,8 @@ actor Quizzy {
                     subject = id;
                     difficulty = difficulty;
                     levelRequired = difficulty;
-                    xpReward = difficulty * 10;
-                    creditReward = difficulty * 5;
+                    xpReward = xpReward;
+                    creditReward = creditReward;
                     timeLimit = ?60;  // 60 seconds
                     questionType = #Numeric;
                     content = {
@@ -477,16 +481,84 @@ actor Quizzy {
 
     // Helper to calculate level based on XP
     private func calculateLevel(xp : Nat) : Nat {
-        // Simple level calculation for now
-        // Level 1: 0-100 XP
-        // Level 2: 101-250 XP
-        // Level 3: 251-500 XP
-        // etc.
-        if (xp <= 100) return 1;
-        if (xp <= 250) return 2;
-        if (xp <= 500) return 3;
-        if (xp <= 1000) return 4;
-        return 5;  // Cap at level 5 for now
+        // Formula: Each level requires baseXP * (growthFactor ^ (level - 1)) XP
+        // baseXP = 100 (XP needed for level 1)
+        // growthFactor = 1.2 (20% more XP needed for each level)
+        
+        if (xp == 0) return 1;
+        
+        // Binary search to find the level
+        var low : Nat = 1;
+        var high : Nat = 100; // Maximum level cap
+        
+        while (low <= high) {
+            let mid = low + (high - low) / 2;
+            let required = getRequiredXP(mid);
+            
+            if (required <= xp and (mid == 100 or getRequiredXP(mid + 1) > xp)) {
+                return mid;
+            } else if (required <= xp) {
+                low := mid + 1;
+            } else {
+                high := mid - 1;
+            };
+        };
+        
+        1 // Fallback to level 1
+    };
+
+    // Helper to calculate required XP for a level
+    private func getRequiredXP(level : Nat) : Nat {
+        let baseXP : Nat = 100;  // XP needed for level 1
+        let growthFactor : Float = 1.2;  // 20% more XP needed for each level
+        
+        if (level == 1) return 0;
+        if (level == 2) return baseXP;
+        
+        // Calculate total XP needed: baseXP * sum(growthFactor^(i-1)) for i from 1 to level-1
+        var total : Nat = baseXP;  // Start with level 1 requirement
+        var currentLevelXP : Float = Float.fromInt(baseXP);
+        
+        var i : Nat = 2;
+        while (i < level) {
+            currentLevelXP := currentLevelXP * growthFactor;
+            total += Int.abs(Float.toInt(currentLevelXP));
+            i += 1;
+        };
+        
+        total
+    };
+
+    // Calculate quest XP reward based on difficulty
+    private func calculateQuestXP(difficulty : Nat) : Nat {
+        let baseQuestXP : Nat = 10;  // Base XP for level 1 quests
+        let questXPGrowth : Float = 1.15;  // 15% more XP for each difficulty level
+        
+        if (difficulty == 1) return baseQuestXP;
+        
+        var xp : Float = Float.fromInt(baseQuestXP);
+        var i : Nat = 1;
+        while (i < difficulty) {
+            xp := xp * questXPGrowth;
+            i += 1;
+        };
+        
+        Int.abs(Float.toInt(xp))
+    };
+
+    // Helper to get XP threshold for next level
+    private func getNextLevelThreshold(level : Nat) : Nat {
+        getRequiredXP(level + 1) - getRequiredXP(level)
+    };
+
+    // Helper to get XP threshold for current level
+    private func getCurrentLevelThreshold(level : Nat) : Nat {
+        getRequiredXP(level)
+    };
+
+    // Helper to calculate XP within current level
+    private func calculateCurrentLevelXP(totalXP : Nat, level : Nat) : Nat {
+        totalXP - getCurrentLevelThreshold(level)
     };
 
     // Get subject information
