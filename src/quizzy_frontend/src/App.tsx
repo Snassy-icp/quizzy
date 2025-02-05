@@ -359,8 +359,14 @@ const App: React.FC = () => {
               value={answer}
               onChange={(e) => setAnswer(e.target.value)}
               placeholder="Enter your answer"
+              disabled={feedback.includes('Correct')}
             />
-            <button onClick={submitAnswer}>Submit</button>
+            <button 
+              onClick={submitAnswer}
+              disabled={feedback.includes('Correct')}
+            >
+              {feedback.includes('Correct') ? 'Completed ✓' : 'Submit'}
+            </button>
             {feedback && <p className={feedback.includes('Correct') ? 'correct' : 'wrong'}>{feedback}</p>}
           </div>
         )}

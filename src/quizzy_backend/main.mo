@@ -17,6 +17,8 @@ actor Quizzy {
     private stable var nextUserId : Nat = 0;
     private stable var nextQuestId : Nat = 0;
     private stable var stableUsers : [(Principal, Types.UserProfile)] = [];
+    private stable var stableSubjects : [(Text, Types.Subject)] = [];
+    private stable var stableQuests : [(Text, Types.Quest)] = [];
 
     // In-memory storage
     private let users = HashMap.HashMap<Principal, Types.UserProfile>(10, Principal.equal, Principal.hash);
@@ -24,40 +26,52 @@ actor Quizzy {
     private let quests = HashMap.HashMap<Text, Types.Quest>(10, Text.equal, Text.hash);
     private let usedNames = HashMap.HashMap<Text, Bool>(10, Text.equal, Text.hash);
 
-    // Initialize root subject
+    // Initialize root subject if it doesn't exist
     private func initRootSubject() {
-        let rootSubject : Types.Subject = {
-            id = "root";
-            name = "Quizzy";
-            description = "The root of all knowledge";
-            parentId = "root"; // Self-referential for root
-            subjectType = #Root;
-            childSubjects = [];
-            prerequisites = [];
-            xpMultiplier = 1.0;
+        switch (subjects.get("root")) {
+            case (?_) { return; }; // Root already exists
+            case null {
+                let rootSubject : Types.Subject = {
+                    id = "root";
+                    name = "Quizzy";
+                    description = "The root of all knowledge";
+                    parentId = "root"; // Self-referential for root
+                    subjectType = #Root;
+                    childSubjects = [];
+                    prerequisites = [];
+                    xpMultiplier = 1.0;
+                };
+                subjects.put("root", rootSubject);
+            };
         };
-        subjects.put("root", rootSubject);
     };
 
-    // Initialize core subjects
+    // Initialize core subjects if they don't exist
     private func initCoreSubjects() {
-        let mathSubject : Types.Subject = {
-            id = "math";
-            name = "Mathematics";
-            description = "The language of the universe";
-            parentId = "root";
-            subjectType = #Core;
-            childSubjects = [];
-            prerequisites = [];
-            xpMultiplier = 1.0;
+        switch (subjects.get("math")) {
+            case (?_) { return; }; // Math subject already exists
+            case null {
+                let mathSubject : Types.Subject = {
+                    id = "math";
+                    name = "Mathematics";
+                    description = "The language of the universe";
+                    parentId = "root";
+                    subjectType = #Core;
+                    childSubjects = [];
+                    prerequisites = [];
+                    xpMultiplier = 1.0;
+                };
+                subjects.put("math", mathSubject);
+            };
         };
-        subjects.put("math", mathSubject);
     };
 
     // System functions
     system func preupgrade() {
         // Convert HashMaps to stable arrays before upgrade
         stableUsers := Iter.toArray(users.entries());
+        stableSubjects := Iter.toArray(subjects.entries());
+        stableQuests := Iter.toArray(quests.entries());
     };
 
     system func postupgrade() {
@@ -68,9 +82,20 @@ actor Quizzy {
             usedNames.put(profile.displayName, true);
         };
         
+        // Restore subjects and quests
+        for ((id, subject) in stableSubjects.vals()) {
+            subjects.put(id, subject);
+        };
+        for ((id, quest) in stableQuests.vals()) {
+            quests.put(id, quest);
+        };
+        
         // Clear stable storage to free memory
         stableUsers := [];
+        stableSubjects := [];
+        stableQuests := [];
         
+        // Initialize subjects only if they don't exist
         initRootSubject();
         initCoreSubjects();
     };
@@ -230,9 +255,38 @@ actor Quizzy {
                             throw Error.reject("User not found");
                         };
                         case (?user) {
-                            // Add XP and update progress (simplified for now)
-                            let updatedUser = updateProgress(user, quest);
-                            users.put(msg.caller, updatedUser);
+                            // Check if user has already completed this quest
+                            let mathProgress = Array.find<(Text, Types.SubjectProgress)>(
+                                user.subjectProgress,
+                                func((id, _)) { id == "math" }
+                            );
+                            
+                            switch (mathProgress) {
+                                case (?(_, progress)) {
+                                    // Check if quest is already completed
+                                    let alreadyCompleted = Array.find<Text>(
+                                        progress.completedQuests,
+                                        func(id) { id == questId }
+                                    );
+                                    
+                                    switch (alreadyCompleted) {
+                                        case (?_) {
+                                            // Quest already completed, return true but don't update progress
+                                            return true;
+                                        };
+                                        case null {
+                                            // First time completing this quest, update progress
+                                            let updatedUser = updateProgress(user, quest);
+                                            users.put(msg.caller, updatedUser);
+                                        };
+                                    };
+                                };
+                                case null {
+                                    // First quest in this subject, update progress
+                                    let updatedUser = updateProgress(user, quest);
+                                    users.put(msg.caller, updatedUser);
+                                };
+                            };
                         };
                     };
                 };
@@ -255,12 +309,13 @@ actor Quizzy {
                     subject = "math";
                     level = 1;
                     xp = quest.xpReward;
-                    credits = quest.creditReward;  // Initialize credits
+                    credits = quest.creditReward;
                     questsCompleted = 1;
                     achievements = [];
                     childProgress = [];
                     aggregatedXP = quest.xpReward;
                     aggregatedLevel = 1;
+                    completedQuests = [quest.id];
                 })
             };
             case (?(id, progress)) {
@@ -269,12 +324,13 @@ actor Quizzy {
                     subject = progress.subject;
                     level = calculateLevel(progress.xp + quest.xpReward);
                     xp = progress.xp + quest.xpReward;
-                    credits = progress.credits + quest.creditReward;  // Add new credits
+                    credits = progress.credits + quest.creditReward;
                     questsCompleted = progress.questsCompleted + 1;
                     achievements = progress.achievements;
                     childProgress = progress.childProgress;
                     aggregatedXP = progress.aggregatedXP + quest.xpReward;
                     aggregatedLevel = calculateLevel(progress.aggregatedXP + quest.xpReward);
+                    completedQuests = Array.append(progress.completedQuests, [quest.id]);
                 })
             };
         };

@@ -22,6 +22,7 @@ module {
         childProgress: [(Text, SubjectProgress)];
         aggregatedXP: Nat;
         aggregatedLevel: Nat;
+        completedQuests: [Text];  // Array of completed quest IDs
     };
 
     public type Achievement = {
