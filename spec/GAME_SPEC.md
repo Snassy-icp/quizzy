@@ -2,24 +2,69 @@
 
 ## Core Concepts
 
+### Authentication & Identity
+- Integration with Internet Identity (II):
+  - Secure authentication flow
+  - Principal-based user identification
+  - Multiple device support
+  - Session management
+  - Device linking/unlinking
+
 ### Player Profile
 - Each player has:
   - A unique identifier and display name
-  - A master level and master XP
-  - Subject-specific levels and XP
-  - Credits (in-game currency)
+  - Progress in the subject tree starting from root
   - Inventory of purchased items
   - Achievement tracking
+  - Preferences
 
 ### Subjects and Progression
-- Modular subject system allowing easy addition of new subjects
-- Initial focus on Mathematics, expandable to Physics, Geography, Biology, etc.
-- Each subject has:
-  - Independent level progression
-  - Subject-specific XP tracking
-  - Difficulty tiers (1-10 initially)
-  - Achievement tree
-  - Unlockable content based on level
+- Single-root hierarchical subject system:
+  - Root "Quizzy" subject (game root)
+    - Contains global XP, level, and credits
+    - Core subjects (Math, Physics, etc.) as direct children
+    - System-managed, cannot be modified by users
+  - Core subjects (e.g., Math, Physics)
+    - System-defined subjects
+    - Sub-subjects (e.g., under Math: Algebra, Geometry)
+    - User-created subjects can be added at this level or below
+  - All subjects inherit core mechanics:
+    - Level progression
+    - XP tracking
+    - Subject-specific currency
+    - Achievement tree
+- Progress aggregation:
+  - XP flows upward through the tree:
+    - Child XP contributes to parent XP based on multiplier
+    - Example: 100 XP in Algebra (0.8 multiplier) = 80 XP to Math
+    - Multiple children sum up: (Algebra + Geometry) XP flows to Math
+    - Root receives weighted contributions from all core subjects
+  - Level calculations:
+    - Each subject has its own level thresholds
+    - Parent levels consider both direct XP and aggregated child XP
+    - Example progression:
+      Level 1: 0-100 XP
+      Level 2: 101-250 XP
+      Level 3: 251-500 XP
+      Level scaling continues exponentially
+  - Currency system:
+    - Credits (root currency):
+      - Only earned through core/system subject quests
+      - Global currency for store purchases
+      - Cannot be awarded by custom subjects
+      - Used for marketplace transactions
+    - Custom currencies:
+      - Created by content creators for their subjects
+      - Named by the creator (e.g., "Class Points", "Homework Stars")
+      - Only valid within the creator's subject
+      - No conversion to Credits or other currencies
+      - Can be used for:
+        - Subject-specific rewards
+        - Custom power-ups
+        - Special content unlocks
+        - Achievement rewards
+      - Multiple currencies per subject allowed
+      - Tracked independently per student
 
 ### Quest System
 - Quests are individual challenges within subjects
@@ -67,6 +112,13 @@
   - Subject-specific XP gains
   - Master XP as weighted sum of subject XP
   - Level thresholds with increasing requirements
+- Currency System:
+  - Global credits for general store items
+  - Subject-specific currencies:
+    - Earned through subject-specific quests
+    - Used for subject-specific power-ups and items
+    - Bonus currency for mastery achievements
+    - Special currency rewards for difficult quests
 - Credits:
   - Earned through completing quests
   - Bonus for first-time completion
@@ -92,14 +144,43 @@
 - Player: Standard game access and progression
 - Content Creator (Parent/Teacher/Mentor):
   - Can create private subjects and quests
-  - Can assign quests to specific players
+  - Can create and manage access groups
+  - Can assign content access to:
+    - Individual principals
+    - Groups of principals
+    - Public access (optional)
   - Can set XP and credit rewards
   - Can track assigned players' progress
   - Can create custom achievement milestones
 
+### Access Control System
+- Group Management:
+  - Teachers can create named groups (e.g., "Class 10A 2024")
+  - Groups contain sets of Internet Identity principals
+  - Bulk import of principals (e.g., from class roster)
+  - Groups can be:
+    - Time-limited (e.g., for school year)
+    - Archived for record keeping
+    - Cloned for new classes
+- Access Rights:
+  - Granular control at subject and quest levels
+  - Multiple access levels:
+    - View/Attempt
+    - Submit
+    - Review others' work (e.g., peer review)
+  - Access can be granted to:
+    - Individual principals
+    - Groups
+    - Multiple groups (e.g., all 10th grade classes)
+    - Public (optional)
+  - Inheritance of access rights through subject tree
+  - Time-based access control (e.g., homework available dates)
+
 ### Custom Content Creation
 - Private Subject Creation:
   - Custom subject name and description
+  - Can be created as a sub-subject of any existing subject
+  - Inherits properties from parent subject (optional)
   - Custom difficulty scale
   - Optional prerequisites
   - Visibility controls:
@@ -159,72 +240,225 @@
 ## Technical Architecture
 
 ### Smart Contracts (Canisters)
-1. **User Management Canister**
-   - Profile management
-   - Authentication
-   - Progress tracking
-   - Inventory management
+1. **Backend Canister**
+   - User management:
+     - Profile management
+     - Progress tracking
+     - Inventory management
+   - Quest management:
+     - Quest generation
+     - Quest validation
+     - Progress tracking
+     - Reward distribution
+   - Store operations:
+     - Item management
+     - Purchase processing
+     - Inventory updates
+   - Custom content:
+     - Subject/Quest creation and management
+     - Assignment distribution
+     - Progress tracking
+     - Creator permissions management
+     - Content visibility control
+   - Marketplace features:
+     - Content discovery
+     - Rating and review system
+     - Content sharing mechanics
+     - Creator reputation tracking
+   - Social features (Future):
+     - Leaderboard management
+     - Chat system
+     - Friend system
 
-2. **Quest Management Canister**
-   - Quest generation
-   - Quest validation
-   - Progress tracking
-   - Reward distribution
-
-3. **Store Canister**
-   - Item management
-   - Purchase processing
-   - Inventory updates
-
-4. **Social Canister** (Future)
-   - Leaderboard management
-   - Chat system
-   - Friend system
-
-5. **Custom Content Canister**
-   - Subject/Quest creation and management
-   - Assignment distribution
-   - Progress tracking
-   - Creator permissions management
-   - Content visibility control
-
-6. **Marketplace Canister**
-   - Content discovery
-   - Rating and review system
-   - Content sharing mechanics
-   - Creator reputation tracking
+2. **Frontend Canister**
+   - Internet Identity integration
+   - Asset serving
+   - Mobile-first responsive UI
+   - Client-side caching
+   - PWA implementation
+   - Offline capabilities
 
 ### Frontend
-- Modern, responsive web interface
+- Mobile-first responsive design:
+  - Touch-optimized interface
+  - Swipe gestures for navigation
+  - Portrait and landscape support
+  - Offline capability for active quests
+  - Progressive Web App (PWA) features
+  - Adaptive UI for different screen sizes
+  - Touch-friendly input methods for math/equations
+  - Mobile-optimized animations
+  - Battery-conscious background processes
+- Responsive web interface for desktop
 - Cartoonish visual style
 - Interactive animations
 - Sound effects and feedback
-- Mobile-friendly design
+- Accessibility features:
+  - Screen reader support
+  - High contrast mode
+  - Configurable text size
+  - Touch target sizing
+  - Motion reduction option
 
 ### Data Models
 
-#### User Profile
+#### UserIdentity
 ```motoko
-type UserProfile = {
-  id: Text;
-  displayName: Text;
-  masterLevel: Nat;
-  masterXP: Nat;
-  credits: Nat;
-  subjectProgress: [(Text, SubjectProgress)];
-  inventory: [Item];
-  achievements: [Achievement];
+type UserIdentity = {
+  principal: Principal;
+  deviceList: [DeviceData];
+  activeDevices: [Text];
+  lastLogin: Time;
+  createdAt: Time;
 };
 ```
 
-#### Subject Progress
+#### DeviceData
+```motoko
+type DeviceData = {
+  deviceId: Text;
+  alias: Text;
+  lastActive: Time;
+  deviceType: DeviceType;
+};
+```
+
+#### UserProfile
+```motoko
+type UserProfile = {
+  id: Text;
+  principal: Principal;
+  displayName: Text;
+  subjectProgress: [(Text, SubjectProgress)];  // Keyed by subject ID, includes root
+  inventory: [Item];
+  achievements: [Achievement];
+  preferences: UserPreferences;
+};
+```
+
+#### UserPreferences
+```motoko
+type UserPreferences = {
+  theme: Theme;
+  soundEnabled: Bool;
+  musicEnabled: Bool;
+  notificationsEnabled: Bool;
+  motionReduced: Bool;
+  fontSize: FontSize;
+  highContrast: Bool;
+  deviceOptimizations: DeviceOptimizations;
+};
+```
+
+#### SubjectDefinition
+```motoko
+type SubjectDefinition = {
+  id: Text;
+  name: Text;
+  description: Text;
+  parentId: Text;  // All subjects have a parent, root has special ID
+  subjectType: {
+    #Root;         // The Quizzy game root
+    #Core;         // System-defined core subjects
+    #System;       // System-defined sub-subjects
+    #Custom;       // User-created subjects
+  };
+  childSubjects: [Text];
+  prerequisites: [Text];
+  visibility: Visibility;
+  currencies: [Currency];  // Empty for non-custom subjects, Credits for root
+  xpMultiplier: Float;  // for contribution to parent subject
+};
+```
+
+#### Currency
+```motoko
+type Currency = {
+  id: Text;
+  name: Text;
+  description: Text;
+  creatorId: Text;
+  subjectId: Text;
+  created: Time;
+  icon: ?Text;  // Optional icon/emoji for the currency
+};
+```
+
+#### SubjectProgress
 ```motoko
 type SubjectProgress = {
   subject: Text;
   level: Nat;
   xp: Nat;
+  currency: Nat;
   questsCompleted: Nat;
   achievements: [Achievement];
+  childProgress: [(Text, SubjectProgress)];  // Progress in sub-subjects
+  aggregatedXP: Nat;  // Including XP from sub-subjects
+  aggregatedLevel: Nat;  // Level considering sub-subjects
+};
+```
+
+#### Group
+```motoko
+type Group = {
+  id: Text;
+  name: Text;
+  description: Text;
+  creatorPrincipal: Principal;
+  members: [Principal];
+  validUntil: ?Time;
+  isArchived: Bool;
+  created: Time;
+  lastModified: Time;
+};
+```
+
+#### AccessControl
+```motoko
+type AccessControl = {
+  individual: [Principal];
+  groups: [Text];  // Group IDs
+  accessLevel: AccessLevel;
+  validFrom: ?Time;
+  validUntil: ?Time;
+  inheritedFrom: ?Text;  // Parent subject ID if inherited
+};
+```
+
+#### AccessLevel = {
+  #ViewOnly;
+  #Attempt;
+  #Submit;
+  #Review;
+  #Manage;
+};
+
+#### CustomSubject
+```motoko
+type CustomSubject = {
+  id: Text;
+  creatorId: Text;
+  parentId: Text;
+  name: Text;
+  description: Text;
+  visibility: {
+    #Private: AccessControl;
+    #Public;
+  };
+  customAchievements: [CustomAchievement];
+  inheritedProperties: [InheritedProperty];
+  xpMultiplier: Float;
+  currencyMultiplier: Float;
+};
+```
+
+#### InheritedProperty
+```motoko
+type InheritedProperty = {
+  propertyType: PropertyType;
+  inheritFromParent: Bool;
+  customValue: ?PropertyValue;
 };
 ```
 
@@ -237,6 +471,7 @@ type Quest = {
   levelRequired: Nat;
   xpReward: Nat;
   creditReward: Nat;
+  subjectCurrencyReward: Nat;
   timeLimit: ?Nat;
   questionType: QuestionType;
   content: QuestContent;
@@ -247,23 +482,11 @@ type Quest = {
 ```motoko
 type ContentCreator = {
   id: Text;
+  principal: Principal;
   displayName: Text;
-  assignedPlayers: [Text];
   createdSubjects: [CustomSubject];
   createdQuests: [CustomQuest];
-};
-```
-
-#### CustomSubject
-```motoko
-type CustomSubject = {
-  id: Text;
-  creatorId: Text;
-  name: Text;
-  description: Text;
-  assignedPlayers: [Text];
-  visibility: Visibility;
-  customAchievements: [CustomAchievement];
+  managedGroups: [Group];
 };
 ```
 
@@ -281,7 +504,7 @@ type CustomQuest = {
   dueDate: ?Time;
   timeLimit: ?Nat;
   xpReward: Nat;
-  creditReward: Nat;
+  currencyRewards: [(Text, Nat)];  // (currencyId, amount)
   prerequisites: [Text];
   assignedPlayers: [Text];
   maxAttempts: ?Nat;
@@ -330,10 +553,12 @@ type Review = {
 ## Implementation Phases
 
 ### Phase 1: Core Mathematics
+- Internet Identity integration
 - Basic user system
 - Mathematics quest generation
 - Core gameplay loop
 - XP and leveling system
+- Mobile-first UI implementation
 
 ### Phase 2: Enhanced Features
 - Store implementation
@@ -361,4 +586,67 @@ type Review = {
 - Leaderboards
 - Chat system
 - Friend system
-- Competitive elements 
+- Competitive elements
+
+### Achievement System
+- Achievement Types:
+  - Milestone achievements (complete X quests)
+  - Mastery achievements (reach level Y)
+  - Speed achievements (complete within time Z)
+  - Streak achievements (daily/weekly participation)
+  - Collection achievements (complete all subjects in a branch)
+- Achievement Propagation:
+  - Individual subject achievements
+  - Branch completion achievements
+    - Example: "Geometry Master" for completing all geometry sub-subjects
+  - Core subject mastery
+    - Example: "Mathematics Guru" for mastering all math subjects
+  - Root achievements
+    - "Renaissance Scholar" for achieving in multiple core subjects
+    - "Grand Master" for reaching high levels in everything
+- Achievement Rewards:
+  - XP bonuses
+  - Currency rewards (both global and subject-specific)
+  - Special items or power-ups
+  - Cosmetic rewards
+  - Title unlocks
+
+### Example Subject Tree Structure
+```
+Quizzy (Root)
+│── Credits as currency
+│── Global XP and Level
+│
+├── Mathematics
+│   │── Math Points as currency
+│   │
+│   ├── Arithmetic
+│   │   ├── Basic Operations
+│   │   ├── Fractions & Decimals
+│   │   └── Number Theory
+│   │
+│   ├── Algebra
+│   │   ├── Basic Algebra
+│   │   ├── Advanced Equations
+│   │   └── Functions
+│   │
+│   └── Geometry
+│       ├── Basic Shapes
+│       ├── Advanced Geometry
+│       └── Custom: "My Geometry Homework" (Private)
+│
+├── Physics
+│   │── Physics Points as currency
+│   │
+│   ├── Mechanics
+│   │   ├── Forces
+│   │   └── Motion
+│   │
+│   └── Custom: "Class 10A Physics" (Shared)
+│
+└── Custom: "Summer Learning Program"
+    │── Program Points as currency
+    │
+    ├── Custom: "Week 1 Materials"
+    └── Custom: "Week 2 Materials"
+``` 
