@@ -39,6 +39,9 @@ const App: React.FC = () => {
   const [answer, setAnswer] = useState('');
   const [feedback, setFeedback] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [nameAvailabilityMessage, setNameAvailabilityMessage] = useState<string | null>(null);
 
   // Initialize auth client
   useEffect(() => {
@@ -106,18 +109,40 @@ const App: React.FC = () => {
     }
   };
 
+  // Check if display name is available
+  const checkNameAvailability = async (name: string) => {
+    if (actor && name.trim()) {
+      try {
+        const isAvailable = await actor.isDisplayNameAvailable(name);
+        setNameAvailabilityMessage(isAvailable ? '✓ Name is available' : '✗ Name is already taken');
+        return isAvailable;
+      } catch (e) {
+        console.error('Error checking name availability:', e);
+        setNameAvailabilityMessage(null);
+        return false;
+      }
+    }
+    setNameAvailabilityMessage(null);
+    return false;
+  };
+
   // Create profile if doesn't exist
   const createProfile = async () => {
     if (actor) {
       try {
-        console.log('Creating profile...');
-        const displayName = 'Player ' + Math.floor(Math.random() * 1000);
-        console.log('Using display name:', displayName);
-        const newProfile = await actor.createProfile(displayName);
+        if (!newDisplayName.trim()) {
+          setError('Please enter a display name');
+          return;
+        }
+        
+        console.log('Creating profile with name:', newDisplayName);
+        const newProfile = await actor.createProfile(newDisplayName);
         console.log('Profile created (full data):', JSON.stringify(newProfile, bigIntReplacer, 2));
         if (newProfile) {
           setProfile(newProfile);
           setError(null);
+          setNewDisplayName('');
+          setNameAvailabilityMessage(null);
         }
       } catch (e) {
         console.error('Error creating profile:', e);
@@ -126,6 +151,23 @@ const App: React.FC = () => {
     } else {
       console.error('Actor not initialized');
       setError('System not properly initialized');
+    }
+  };
+
+  // Change display name
+  const changeDisplayName = async () => {
+    if (actor && newDisplayName.trim()) {
+      try {
+        const updatedProfile = await actor.changeDisplayName(newDisplayName);
+        setProfile(updatedProfile);
+        setIsEditingName(false);
+        setNewDisplayName('');
+        setNameAvailabilityMessage(null);
+        setError(null);
+      } catch (e) {
+        console.error('Error changing display name:', e);
+        setError(e instanceof Error ? e.message : 'An error occurred while changing display name');
+      }
     }
   };
 
@@ -197,6 +239,22 @@ const App: React.FC = () => {
     return (
       <div className="container">
         <h1>Create Profile</h1>
+        <div className="name-input-container">
+          <input
+            type="text"
+            value={newDisplayName}
+            onChange={(e) => {
+              setNewDisplayName(e.target.value);
+              checkNameAvailability(e.target.value);
+            }}
+            placeholder="Enter your display name"
+          />
+          {nameAvailabilityMessage && (
+            <span className={nameAvailabilityMessage.includes('✓') ? 'available' : 'unavailable'}>
+              {nameAvailabilityMessage}
+            </span>
+          )}
+        </div>
         <button onClick={createProfile}>Create New Profile</button>
         {error && <p className="error">{error}</p>}
       </div>
@@ -212,7 +270,41 @@ const App: React.FC = () => {
       
       <div className="profile">
         <h2>Profile</h2>
-        <p>Player: {profile?.displayName || 'Unknown'}</p>
+        <div className="player-name">
+          {isEditingName ? (
+            <div className="name-input-container">
+              <input
+                type="text"
+                value={newDisplayName}
+                onChange={(e) => {
+                  setNewDisplayName(e.target.value);
+                  checkNameAvailability(e.target.value);
+                }}
+                placeholder="Enter new display name"
+              />
+              {nameAvailabilityMessage && (
+                <span className={nameAvailabilityMessage.includes('✓') ? 'available' : 'unavailable'}>
+                  {nameAvailabilityMessage}
+                </span>
+              )}
+              <div className="name-buttons">
+                <button onClick={changeDisplayName}>Save</button>
+                <button onClick={() => {
+                  setIsEditingName(false);
+                  setNewDisplayName('');
+                  setNameAvailabilityMessage(null);
+                }}>Cancel</button>
+              </div>
+            </div>
+          ) : (
+            <div className="display-name">
+              <p>Player: {profile?.displayName || 'Unknown'}</p>
+              <button className="edit-name-button" onClick={() => setIsEditingName(true)}>
+                ✏️ Change Name
+              </button>
+            </div>
+          )}
+        </div>
         {profile?.subjectProgress && Array.isArray(profile.subjectProgress) && (
           <div>
             {profile.subjectProgress.map((progress: any) => {

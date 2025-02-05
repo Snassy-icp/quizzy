@@ -178,4 +178,49 @@ input {
 .logout-button:hover {
   background-color: var(--primary-color);
   color: white;
+}
+
+.name-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.name-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.available {
+  color: var(--success-color);
+  font-size: 0.9rem;
+}
+
+.unavailable {
+  color: var(--error-color);
+  font-size: 0.9rem;
+}
+
+.display-name {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.edit-name-button {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.edit-name-button:hover {
+  text-decoration: underline;
 } 

@@ -10,16 +10,19 @@ import Int "mo:base/Int";
 import Debug "mo:base/Debug";
 import Error "mo:base/Error";
 import Buffer "mo:base/Buffer";
+import Iter "mo:base/Iter";
 
 actor Quizzy {
     // State
     private stable var nextUserId : Nat = 0;
     private stable var nextQuestId : Nat = 0;
+    private stable var stableUsers : [(Principal, Types.UserProfile)] = [];
 
     // In-memory storage
     private let users = HashMap.HashMap<Principal, Types.UserProfile>(10, Principal.equal, Principal.hash);
     private let subjects = HashMap.HashMap<Text, Types.Subject>(10, Text.equal, Text.hash);
     private let quests = HashMap.HashMap<Text, Types.Quest>(10, Text.equal, Text.hash);
+    private let usedNames = HashMap.HashMap<Text, Bool>(10, Text.equal, Text.hash);
 
     // Initialize root subject
     private func initRootSubject() {
@@ -53,10 +56,21 @@ actor Quizzy {
 
     // System functions
     system func preupgrade() {
-        // Will add stable storage later
+        // Convert HashMaps to stable arrays before upgrade
+        stableUsers := Iter.toArray(users.entries());
     };
 
     system func postupgrade() {
+        // Restore HashMaps from stable storage
+        for ((principal, profile) in stableUsers.vals()) {
+            users.put(principal, profile);
+            // Reconstruct usedNames from user profiles
+            usedNames.put(profile.displayName, true);
+        };
+        
+        // Clear stable storage to free memory
+        stableUsers := [];
+        
         initRootSubject();
         initCoreSubjects();
     };
@@ -70,6 +84,16 @@ actor Quizzy {
                 throw Error.reject("Profile already exists");
             };
             case null {
+                // Check if name is taken
+                switch (usedNames.get(displayName)) {
+                    case (?taken) {
+                        if (taken) {
+                            throw Error.reject("Display name is already taken");
+                        };
+                    };
+                    case null { };
+                };
+
                 let userId = Nat.toText(nextUserId);
                 nextUserId += 1;
 
@@ -92,6 +116,7 @@ actor Quizzy {
                 };
 
                 users.put(caller, newProfile);
+                usedNames.put(displayName, true);
                 return newProfile;
             };
         };
@@ -99,6 +124,48 @@ actor Quizzy {
 
     public shared query(msg) func getProfile() : async ?Types.UserProfile {
         users.get(msg.caller)
+    };
+
+    // Check if a display name is available
+    public shared query func isDisplayNameAvailable(name : Text) : async Bool {
+        switch (usedNames.get(name)) {
+            case (?taken) { return not taken; };
+            case null { return true; };
+        };
+    };
+
+    // Change display name
+    public shared(msg) func changeDisplayName(newName : Text) : async Types.UserProfile {
+        // Check if name is taken
+        switch (usedNames.get(newName)) {
+            case (?taken) {
+                if (taken) {
+                    throw Error.reject("Display name is already taken");
+                };
+            };
+            case null { };
+        };
+        
+        // Get current user profile
+        switch (users.get(msg.caller)) {
+            case (?user) {
+                // Remove old name from used names
+                usedNames.delete(user.displayName);
+                
+                // Update with new name
+                let updatedProfile : Types.UserProfile = {
+                    user with
+                    displayName = newName;
+                };
+                
+                users.put(msg.caller, updatedProfile);
+                usedNames.put(newName, true);
+                return updatedProfile;
+            };
+            case null {
+                throw Error.reject("User profile not found");
+            };
+        };
     };
 
     // Quest Generation for Mathematics
