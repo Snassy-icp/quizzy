@@ -1,0 +1,37 @@
+{
+  "canisters": {
+    "internet_identity": {
+      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
+      "frontend": {},
+      "remote": {
+        "id": {
+          "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
+        }
+      },
+      "type": "custom",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+    },
+    "quizzy_backend": {
+      "main": "src/quizzy_backend/main.mo",
+      "type": "motoko"
+    },
+    "quizzy_frontend": {
+      "dependencies": [
+        "quizzy_backend"
+      ],
+      "source": [
+        "src/quizzy_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "quizzy_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
