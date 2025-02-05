@@ -12,6 +12,11 @@ const bigIntReplacer = (_key: string, value: any) => {
   return value;
 };
 
+// Helper function to format achievement/item ID
+const formatId = (id: bigint): string => {
+  return id.toString().padStart(4, '0');
+};
+
 // Helper function to get XP threshold for next level
 const getXpThreshold = (currentXp: number): number => {
   if (currentXp <= 100) return 100;

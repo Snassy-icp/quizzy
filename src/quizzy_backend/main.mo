@@ -17,6 +17,8 @@ actor Quizzy {
     // State
     private stable var nextQuestId : Nat = 0;
     private stable var nextSubjectId : Nat = 0;
+    private stable var nextAchievementId : Nat = 0;
+    private stable var nextItemId : Nat = 0;
     private stable var stableUsers : [(Principal, Types.UserProfile)] = [];
     private stable var stableSubjects : [(Nat, Types.Subject)] = [];
     private stable var stableQuests : [(Nat, Types.Quest)] = [];
@@ -427,5 +429,34 @@ actor Quizzy {
             };
         };
         Buffer.toArray(results)
+    };
+
+    // Helper function to create a new achievement
+    private func createAchievement(name: Text, description: Text, maxProgress: Nat) : Types.Achievement {
+        let id = nextAchievementId;
+        nextAchievementId += 1;
+        {
+            id = id;
+            name = name;
+            description = description;
+            unlocked = false;
+            unlockedAt = null;
+            progress = 0;
+            maxProgress = maxProgress;
+        }
+    };
+
+    // Helper function to create a new item
+    private func createItem(name: Text, description: Text, itemType: Types.ItemType, expiresAt: ?Time.Time) : Types.Item {
+        let id = nextItemId;
+        nextItemId += 1;
+        {
+            id = id;
+            name = name;
+            description = description;
+            itemType = itemType;
+            acquired = Time.now();
+            expiresAt = expiresAt;
+        }
     };
 };

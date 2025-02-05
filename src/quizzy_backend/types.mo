@@ -25,7 +25,7 @@ module {
     };
 
     public type Achievement = {
-        id: Text;
+        id: Nat;
         name: Text;
         description: Text;
         unlocked: Bool;
@@ -58,7 +58,7 @@ module {
     };
 
     public type Item = {
-        id: Text;
+        id: Nat;
         name: Text;
         description: Text;
         itemType: ItemType;
