@@ -188,6 +188,7 @@ actor Quizzy {
                     subject = "math";
                     level = 1;
                     xp = quest.xpReward;
+                    credits = quest.creditReward;  // Initialize credits
                     questsCompleted = 1;
                     achievements = [];
                     childProgress = [];
@@ -201,6 +202,7 @@ actor Quizzy {
                     subject = progress.subject;
                     level = calculateLevel(progress.xp + quest.xpReward);
                     xp = progress.xp + quest.xpReward;
+                    credits = progress.credits + quest.creditReward;  // Add new credits
                     questsCompleted = progress.questsCompleted + 1;
                     achievements = progress.achievements;
                     childProgress = progress.childProgress;

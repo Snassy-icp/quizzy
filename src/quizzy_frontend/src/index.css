@@ -100,4 +100,55 @@ input {
   height: 100%;
   background-color: var(--primary-color);
   transition: width 0.3s ease-in-out;
+}
+
+.subject-progress {
+  padding: 1rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.subject-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.subject-header h3 {
+  margin: 0;
+  color: var(--primary-color);
+}
+
+.credits {
+  background-color: rgba(74, 144, 226, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.credits-icon {
+  font-size: 1.2rem;
+}
+
+.quest-rewards {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.reward {
+  background-color: rgba(74, 144, 226, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.reward-icon {
+  font-size: 1.2rem;
 } 

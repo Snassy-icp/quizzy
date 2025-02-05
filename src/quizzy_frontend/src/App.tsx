@@ -134,6 +134,7 @@ const App: React.FC = () => {
     if (actor) {
       try {
         const quest = await actor.generateMathQuest(1);
+        console.log('Generated quest:', JSON.stringify(quest, bigIntReplacer, 2));
         setCurrentQuest(quest);
         setAnswer('');
         setFeedback('');
@@ -202,9 +203,16 @@ const App: React.FC = () => {
               const [subject, data] = progress;
               const currentXp = data && typeof data === 'object' ? Number(data.xp) : 0;
               const xpThreshold = getXpThreshold(currentXp);
+              const credits = data && typeof data === 'object' ? Number(data.credits) || 0 : 0;
               return (
-                <div key={subject || 'unknown'}>
-                  <p>Subject: {subject || 'Unknown'}</p>
+                <div key={subject || 'unknown'} className="subject-progress">
+                  <div className="subject-header">
+                    <h3>Subject: {subject || 'Unknown'}</h3>
+                    <div className="credits">
+                      <span className="credits-icon">🪙</span>
+                      <span>{credits} Credits</span>
+                    </div>
+                  </div>
                   <p>Level: {data && typeof data === 'object' ? Number(data.level) : 0}</p>
                   <p>XP: {currentXp} / {xpThreshold}</p>
                   <div className="xp-bar">
@@ -228,6 +236,16 @@ const App: React.FC = () => {
         {currentQuest && (
           <div>
             <p>{currentQuest.content?.question || 'Error loading question'}</p>
+            <div className="quest-rewards">
+              <span className="reward">
+                <span className="reward-icon">⭐</span>
+                <span>{Number(currentQuest.xpReward) || 0} XP</span>
+              </span>
+              <span className="reward">
+                <span className="reward-icon">🪙</span>
+                <span>{Number(currentQuest.creditReward) || 0} Credits</span>
+              </span>
+            </div>
             <input
               type="text"
               value={answer}

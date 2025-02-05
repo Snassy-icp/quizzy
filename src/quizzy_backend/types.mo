@@ -16,6 +16,7 @@ module {
         subject: Text;
         level: Nat;
         xp: Nat;
+        credits: Nat;
         questsCompleted: Nat;
         achievements: [Achievement];
         childProgress: [(Text, SubjectProgress)];
