@@ -1,15 +1,15 @@
 {
   "canisters": {
     "internet_identity": {
-      "candid": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity.did",
-      "frontend": {},
+      "type": "custom",
+      "candid": "https://github.com/dfinity/internet-identity/releases/download/release-2024-02-14/internet_identity.did",
+      "wasm": "https://github.com/dfinity/internet-identity/releases/download/release-2024-02-14/internet_identity_dev.wasm.gz",
       "remote": {
         "id": {
           "ic": "rdmx6-jaaaa-aaaaa-aaadq-cai"
         }
       },
-      "type": "custom",
-      "wasm": "https://github.com/dfinity/internet-identity/releases/latest/download/internet_identity_dev.wasm.gz"
+      "frontend": {}
     },
     "quizzy_backend": {
       "main": "src/quizzy_backend/main.mo",

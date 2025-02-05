@@ -3,10 +3,16 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width" />
-  <title>IC Hello Starter</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quizzy</title>
   <base href="/" />
   <link rel="icon" href="/favicon.ico" />
+  <script>
+    window.ENV = {
+      QUIZZY_BACKEND_CANISTER_ID: "<%= QUIZZY_BACKEND_CANISTER_ID %>",
+      II_URL: "<%= II_URL %>"
+    };
+  </script>
 </head>
 
 <body>
