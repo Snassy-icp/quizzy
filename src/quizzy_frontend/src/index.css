@@ -356,4 +356,14 @@ input:disabled {
 
 .help-link span:first-child {
   font-size: 1.2rem;
+}
+
+.table-note {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background-color: rgba(74, 144, 226, 0.05);
+  border-radius: 4px;
 } 

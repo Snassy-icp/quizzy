@@ -1,5 +1,5 @@
 import React from 'react';
-import { getRequiredXP, calculateQuestXP } from './xpCalculator';
+import { getRequiredXP, calculateQuestXP, calculateQuestCredits } from './xpCalculator';
 
 const Help: React.FC = () => {
   // Calculate XP table data
@@ -10,6 +10,7 @@ const Help: React.FC = () => {
       const previousXP = getRequiredXP(level - 1);
       const levelXP = totalXP - previousXP;
       const questXP = calculateQuestXP(level);
+      const questCredits = calculateQuestCredits(level);
       const questsNeeded = Math.ceil(levelXP / questXP);
 
       return {
@@ -17,6 +18,7 @@ const Help: React.FC = () => {
         totalXP,
         levelXP,
         questXP,
+        questCredits,
         questsNeeded,
       };
     });
@@ -47,7 +49,7 @@ const Help: React.FC = () => {
       <section className="help-section">
         <h2>XP and Leveling System</h2>
         <p>Your progress is measured through experience points (XP) and levels. Each level requires more XP than the last, 
-           but higher-level quests also give more XP rewards.</p>
+           but higher-level quests also give more XP and credit rewards.</p>
         
         <div className="xp-table-container">
           <h3>Level Progression Table</h3>
@@ -58,21 +60,27 @@ const Help: React.FC = () => {
                 <th>Total XP</th>
                 <th>XP for Level</th>
                 <th>Quest XP</th>
+                <th>Quest Credits</th>
                 <th>Quests Needed</th>
               </tr>
             </thead>
             <tbody>
-              {xpTableData.map(({ level, totalXP, levelXP, questXP, questsNeeded }) => (
+              {xpTableData.map(({ level, totalXP, levelXP, questXP, questCredits, questsNeeded }) => (
                 <tr key={level}>
                   <td>{level}</td>
                   <td>{totalXP.toLocaleString()}</td>
                   <td>{levelXP.toLocaleString()}</td>
                   <td>{questXP.toLocaleString()}</td>
+                  <td>{questCredits.toLocaleString()}</td>
                   <td>{questsNeeded}</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          <p className="table-note">
+            Note: Credits can be used to purchase power-ups, cosmetic items, and special content in the store.
+            Higher difficulty quests award more credits to match their increased challenge.
+          </p>
         </div>
       </section>
 

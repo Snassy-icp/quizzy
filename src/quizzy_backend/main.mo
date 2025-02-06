@@ -227,6 +227,23 @@ actor Quizzy {
         };
     };
 
+    // Calculate quest credit reward based on difficulty
+    private func calculateQuestCredits(difficulty : Nat) : Nat {
+        let baseCredits : Nat = 5;  // Base credits for level 1 quests
+        let creditGrowth : Float = 1.1;  // 10% more credits for each difficulty level
+        
+        if (difficulty == 1) return baseCredits;
+        
+        var credits : Float = Float.fromInt(baseCredits);
+        var i : Nat = 1;
+        while (i < difficulty) {
+            credits := credits * creditGrowth;
+            i += 1;
+        };
+        
+        Int.abs(Float.toInt(credits))
+    };
+
     // Quest Generation for Mathematics
     public func generateMathQuest(difficulty : Nat) : async Types.Quest {
         let questId = nextQuestId;
@@ -244,7 +261,7 @@ actor Quizzy {
             case (?(id, subject)) {
                 // Calculate rewards based on difficulty
                 let xpReward = calculateQuestXP(difficulty);
-                let creditReward = difficulty * 5;  // Keep credits linear for now
+                let creditReward = calculateQuestCredits(difficulty);
 
                 // Generate quest based on difficulty level
                 let (question, answer, explanation) = switch difficulty {
