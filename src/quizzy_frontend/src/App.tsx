@@ -4,6 +4,7 @@ import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../src/declarations/quizzy_backend';
 import type { _SERVICE, Subject, SubjectProgress } from '../../../src/declarations/quizzy_backend/quizzy_backend.did.d.ts';
 import Help from './Help';
+import { getRequiredXP, getXpThreshold, getCurrentLevelXP } from './xpCalculator';
 
 // Helper function to safely stringify BigInt values
 const bigIntReplacer = (_key: string, value: any) => {
@@ -16,36 +17,6 @@ const bigIntReplacer = (_key: string, value: any) => {
 // Helper function to format achievement/item ID
 const formatId = (id: bigint): string => {
   return id.toString().padStart(4, '0');
-};
-
-// Helper function to calculate required XP for a level
-const getRequiredXP = (level: number): number => {
-  const baseXP = 100;  // XP needed for level 1
-  const growthFactor = 1.5;  // 50% more XP needed for each level
-  
-  if (level === 1) return 0;
-  if (level === 2) return baseXP;
-  
-  // Calculate total XP needed: baseXP * sum(growthFactor^(i-1)) for i from 1 to level-1
-  let total = baseXP;  // Start with level 1 requirement
-  let currentLevelXP = baseXP;
-  
-  for (let i = 2; i < level; i++) {
-    currentLevelXP *= growthFactor;
-    total += Math.floor(currentLevelXP);
-  }
-  
-  return total;
-};
-
-// Helper function to get XP threshold for next level
-const getXpThreshold = (level: number): number => {
-  return getRequiredXP(level + 1) - getRequiredXP(level);
-};
-
-// Helper function to get current level XP
-const getCurrentLevelXP = (totalXP: number, level: number): number => {
-  return totalXP - getRequiredXP(level);
 };
 
 declare global {
