@@ -3,6 +3,7 @@ import { AuthClient } from '@dfinity/auth-client';
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { idlFactory, canisterId } from '../../../src/declarations/quizzy_backend';
 import type { _SERVICE, Subject, SubjectProgress } from '../../../src/declarations/quizzy_backend/quizzy_backend.did.d.ts';
+import Help from './Help';
 
 // Helper function to safely stringify BigInt values
 const bigIntReplacer = (_key: string, value: any) => {
@@ -71,6 +72,7 @@ const App: React.FC = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [nameAvailabilityMessage, setNameAvailabilityMessage] = useState<string | null>(null);
   const [subjectNames, setSubjectNames] = useState<{[key: string]: string}>({});
+  const [showHelp, setShowHelp] = useState(false);
 
   // Initialize auth client
   useEffect(() => {
@@ -298,6 +300,18 @@ const App: React.FC = () => {
     );
   }
 
+  if (showHelp) {
+    return (
+      <div className="container">
+        <div className="header">
+          <h1>Quizzy Help</h1>
+          <button onClick={() => setShowHelp(false)}>Back to Game</button>
+        </div>
+        <Help />
+      </div>
+    );
+  }
+
   if (!profile) {
     return (
       <div className="container">
@@ -328,7 +342,13 @@ const App: React.FC = () => {
     <div className="container">
       <div className="header">
         <h1>Quizzy</h1>
-        <button className="logout-button" onClick={logout}>Logout</button>
+        <div className="header-buttons">
+          <a className="help-link" onClick={() => setShowHelp(true)}>
+            <span>❓</span>
+            <span>Help</span>
+          </a>
+          <button className="logout-button" onClick={logout}>Logout</button>
+        </div>
       </div>
       
       <div className="profile">
